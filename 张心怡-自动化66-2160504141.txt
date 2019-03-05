@@ -1,0 +1,217 @@
+2、把lena 512*512图像灰度级逐级递减8-1显示；
+
+lena = imread('lena.bmp');                           % 读取原图像
+subplot(2,4,1);imshow(lena);title('原图像');      % 显示原图像
+for i = 1:7                 
+    subplot(2,4,i+1);
+    imshow(grayleveldec(lena,i));                          % 逐个显示灰度级降低后的图像
+    title(sprintf("%d级灰度图像", 2^(8-i)));                
+end
+
+
+function im_t = grayleveldec(im_a,factor)
+%功能： 将原图像的灰度级按照2的factor次幂减少
+if factor<0 
+    factor=0;
+end
+if factor>8
+    factor=8
+end      
+dfactor=uint8(power(2,factor));   
+im_t=(im_a/dfactor)*dfactor;                          
+return;
+end
+
+3、计算lena图像的均值方差；
+
+lena=imread('lena.bmp'); %载入lena图像
+lena=double(lena);  %将uint8型转换为double型，否则不能计算统计量
+avg=mean2(lena);
+var=var(lena(:)); 
+
+4、把lena图像用近邻、双线性和双三次插值法zoom到2048*2048；
+
+近邻：
+lena=imread('lena.bmp'); %载入lena图像
+lena=double(lena); 
+w=512;h=512;
+W=2048;H=2048;
+lena2=zeros(W,H);
+for i=1:W
+   for j=1:H
+       x=round(i/W*w);
+       y=round(j/H*h);
+       if x<1
+           x=1;
+       end
+       if y<1
+           y=1;
+       end
+       lena2(i,j)=lena(x,y);
+   end
+end
+lena2=uint8(lena2);
+imshow(lena2);
+
+双线性：
+lena=imread('lena.bmp'); %载入lena图像
+lena=double(lena); 
+w=512;h=512;
+W=2048;H=2048;
+lena2=zeros(W,H);
+for i=1:W
+   for j=1:H
+       x=fix(i/W*w);
+       y=fix(j/H*h);
+       u=i/W*w-x;
+       v=j/H*h-y;
+       if x<1
+           x=1;
+       end
+       if y<1
+           y=1;
+       end
+       if x>511
+           x=511;
+       end
+       if y>511
+           y=511;
+       end
+       lena2(i,j)=(1-u)*(1-v)*lena(x,y)+(1-u)*v*lena(x+1,y)+u*(1-v)*lena(x,y+1)+u*v*lena(x+1,y+1);
+   end
+end
+lena2=uint8(lena2);
+imshow(lena2);
+
+双三次：
+lena=imread('lena.bmp'); %载入lena图像
+lena=double(lena); 
+w=512;h=512;
+W=2048;H=2048;
+lena2=zeros(W,H);
+for i=1:W
+   for j=1:H
+       x=fix(i/W*w);
+       y=fix(j/H*h);
+       u=i/W*w-x;
+       v=j/H*h-y;
+       if x<2
+           x=2;
+       end
+       if y<3
+           y=3;
+       end
+       if x>510
+           x=510;
+       end
+       if y>511
+           y=511;
+       end
+       A=[sw(1+u) sw(u) sw(1-u) sw(2-u)];
+       B=[lena(x-1,y-2) lena(x,y-2) lena(x+1,y-2) lena(x+2,y-2)
+          lena(x-1,y-1) lena(x,y-1) lena(x+1,y-1) lena(x+2,y-1)
+          lena(x-1,y) lena(x,y) lena(x+1,y) lena(x+2,y)
+          lena(x-1,y+1) lena(x,y+1) lena(x+1,y+1) lena(x+2,y+1)];
+       C=[sw(1+v) sw(v) sw(1-v) sw(2-v)]';
+       lena2(i,j)=A*B*C;
+   end
+end
+lena2=uint8(lena2);
+imshow(lena2);
+
+function A=sw(w1)
+w=abs(w1);
+if w<1&&w>=0
+A=1-2*w^2+w^3;
+elseif w>=1&&w<2
+A=4-8*w+5*w^2-w^3;
+else
+A=0;
+end
+end
+
+5、把lena和elain图像分别进行水平shear（参数可设置为1.5，或者自行选择）和旋转30度，并采用用近邻、双线性和双三次插值法zoom到2048*2048；
+
+lena水平shear：
+lena=imread('lena.bmp'); %载入lena图像
+T=maketform('affine',[1 0 0;1 2 0;0 0 1]);
+tformfwd([10 20],T);
+lena2=imtransform(lena,T);
+subplot(2,2,1);
+imshow(lena);
+title( ' 原始图像 ' );
+B1=imresize(lena2,[2048 2048], 'nearest' );
+subplot(2,2,2);
+imshow(B1);
+title( ' 最近邻插值法 ' );
+B2=imresize(lena2,[2048 2048], 'bilinear' );
+subplot(2,2,3);
+imshow(B2);
+title( ' 双线性插值法 ' );
+B3=imresize(lena2,[2048 2048], 'bicubic' );
+subplot(2,2,4);
+imshow(B3);
+title( ' 双三次插值法 ' );
+
+elain水平shear：
+elain=imread('elain1.bmp'); %载入elain图像
+T=maketform('affine',[1 0 0;1 2 0;0 0 1]);
+tformfwd([10 20],T);
+elain2=imtransform(elain,T);
+subplot(2,2,1);
+imshow(elain);
+title( ' 原始图像 ' );
+B1=imresize(elain2,[2048 2048], 'nearest' );
+subplot(2,2,2);
+imshow(B1);
+title( ' 最近邻插值法 ' );
+B2=imresize(elain2,[2048 2048], 'bilinear' );
+subplot(2,2,3);
+imshow(B2);
+title( ' 双线性插值法 ' );
+B3=imresize(elain2,[2048 2048], 'bicubic' );
+subplot(2,2,4);
+imshow(B3);
+title( ' 双三次插值法 ' );
+
+lena旋转：
+lena=imread('lena.bmp'); %载入lena图像
+subplot(2,2,1);
+imshow(lena);
+title( ' 原始图像 ' );
+lena2=imrotate(lena,30, 'nearest' );
+B1=imresize(lena2,[2048 2048], 'nearest' );
+subplot(2,2,2);
+imshow(B1);
+title( ' 最近邻插值法 ' );
+lena3=imrotate(lena,30, 'nearest' );
+B2=imresize(lena3,[2048 2048], 'bilinear' );
+subplot(2,2,3);
+imshow(B2);
+title( ' 双线性插值法 ' );
+lena4=imrotate(lena,30, 'nearest' );
+B3=imresize(lena4,[2048 2048], 'bicubic' );
+subplot(2,2,4);
+imshow(B3);
+title( ' 双三次插值法 ' );
+
+elain旋转：
+elain=imread('elain1.bmp'); %载入elain图像
+subplot(2,2,1);
+imshow(elain);
+title( ' 原始图像 ' );
+elain2=imrotate(elain,30, 'nearest' );
+B1=imresize(elain2,[2048 2048], 'nearest' );
+subplot(2,2,2);
+imshow(B1);
+title( ' 最近邻插值法 ' );
+elain3=imrotate(elain,30, 'nearest' );
+B2=imresize(elain3,[2048 2048], 'bilinear' );
+subplot(2,2,3);
+imshow(B2);
+title( ' 双线性插值法 ' );
+elain4=imrotate(elain,30, 'nearest' );
+B3=imresize(elain4,[2048 2048], 'bicubic' );
+subplot(2,2,4);
+imshow(B3);
+title( ' 双三次插值法 ' );
